@@ -1,64 +1,59 @@
+import json
+import time
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as cond
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-# https://github.com/Shubh0405/automate_spotify_login/blob/master/practice_file.py
-# Input Spotify credentials
-print('Please enter your username:')
-username = input()
-print('Please enter your password:')
-password = input()
+from credentials import username, password, chromedriver_path
 
-# Path to ChromeDriver
-chromedriver_path = r"C:\path\to\chromedriver.exe"  # Update this path
-
-# Set up ChromeDriver with options
+# set some options
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Remove this line if you want to see the browser
+chrome_options.add_argument("--headless")  # remove if you want to see the browser window
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--disable-extensions")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+#chrome_options.add_argument("--no-sandbox") # enable if having difficulties running in Docker or something
+#chrome_options.add_argument("--disable-dev-shm-usage") # see above
 
-service = Service(chromedriver_path)
-driver = webdriver.Chrome(service=service, options=chrome_options)
+# Set up Chrome with performance logging
+caps = DesiredCapabilities.CHROME.copy()
+caps['goog:loggingPrefs'] = {'performance': 'ALL'}
+driver = webdriver.Chrome(service=Service(chromedriver_path), desired_capabilities=caps, options=chrome_options)
 
 try:
-    # Navigate to Spotify login page
-    driver.get("https://accounts.spotify.com/en/login?continue=https:%2F%2Fopen.spotify.com%2F")
-    
     # Log in to Spotify
-    username_field = WebDriverWait(driver, 10).until(cond.presence_of_element_located((By.NAME, "username")))
-    username_field.clear()
-    username_field.send_keys(username)
+    driver.get("https://accounts.spotify.com/en/login?continue=https:%2F%2Fopen.spotify.com%2F")
+    WebDriverWait(driver, 10).until(cond.presence_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))).send_keys(username)
+    driver.find_element(By.CSS_SELECTOR, 'input[autocomplete="current-password"]').send_keys(password)
+    driver.find_element(By.ID, "login-button").click()
 
-    password_field = driver.find_element(By.NAME, "password")
-    password_field.clear()
-    password_field.send_keys(password)
-
-    driver.find_element(By.ID, "login-button").send_keys(Keys.ENTER)
-
-    # Wait for navigation to Web Player
+    # Wait for the main page to load and allow network requests to complete
     WebDriverWait(driver, 15).until(cond.url_contains("https://open.spotify.com"))
+    time.sleep(5)
 
-    # Extract tokens from cookies (as a fallback)
-    cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
-    authorization = cookies.get('sp_dc')  # Common for Spotify sessions
-    client_token = cookies.get('sp_key')  # Possible alternate session key
+    # Extract tokens from network logs
+    authorization_token, client_token = None, None
+    for entry in driver.get_log("performance"):
+        try:
+            log = json.loads(entry["message"])["message"]
+            if log["method"] == "Network.requestWillBeSent":
+                headers = log["params"]["request"].get("headers", {})
+                if "authorization" in headers and "client-token" in headers:
+                    authorization_token = headers["authorization"]
+                    client_token = headers["client-token"]
+                    break
+        except Exception:
+            continue
 
-    if authorization:
-        print("Authorization Token:", authorization)
-    else:
-        print("Authorization token not found.")
-
-    if client_token:
+    if authorization_token and client_token:
+        print("Authorization Token:", authorization_token)
         print("Client Token:", client_token)
     else:
-        print("Client token not found.")
+        print("Tokens not found in network logs.")
 
 finally:
     driver.quit()

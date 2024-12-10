@@ -1,6 +1,7 @@
 import json
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,7 +19,8 @@ from credentials import username, password, chromedriver_path
 caps = DesiredCapabilities.CHROME.copy()
 caps['goog:loggingPrefs'] = {'performance': 'ALL'}
 
-service = Service(chromedriver_path)
+service = Service(ChromeDriverManager().install())
+#service = Service(chromedriver_path)
 driver = webdriver.Chrome(service=service, desired_capabilities=caps)
 
 try:

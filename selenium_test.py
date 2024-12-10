@@ -2,11 +2,11 @@ import json
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as cond
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
 from credentials import username, password, chromedriver_path
@@ -20,9 +20,13 @@ chrome_options.add_argument("--disable-extensions")
 #chrome_options.add_argument("--disable-dev-shm-usage") # see above
 
 # Set up Chrome with performance logging
+service = Service(ChromeDriverManager().install())
+
 caps = DesiredCapabilities.CHROME.copy()
 caps['goog:loggingPrefs'] = {'performance': 'ALL'}
-driver = webdriver.Chrome(service=Service(chromedriver_path), desired_capabilities=caps, options=chrome_options)
+
+#driver = webdriver.Chrome(service=Service(chromedriver_path), desired_capabilities=caps)#, options=chrome_options)
+driver = webdriver.Chrome(service=service, desired_capabilities=caps, options=chrome_options)
 
 try:
     # Log in to Spotify

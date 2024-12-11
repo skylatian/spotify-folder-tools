@@ -37,7 +37,7 @@ try:
 
     # Wait for the main page to load and allow network requests to complete
     WebDriverWait(driver, 15).until(cond.url_contains("https://open.spotify.com"))
-    time.sleep(5)
+    #time.sleep(5) # might not be necessary
 
     # Extract tokens from network logs
     authorization_token, client_token = None, None
@@ -55,6 +55,7 @@ try:
 
     if authorization_token and client_token:
         print("Authorization Token:", authorization_token)
+        print("")
         print("Client Token:", client_token)
     else:
         print("Tokens not found in network logs.")

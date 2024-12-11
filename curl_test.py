@@ -14,7 +14,7 @@ headers = {
     'app-platform': 'WebPlayer',
     'authorization': auth_token,
     'cache-control': 'no-cache',
-    'client-token': client_token,
+    #'client-token': client_token,
     'content-type': 'application/json;charset=UTF-8',
     'dnt': '1',
     'origin': 'https://open.spotify.com',

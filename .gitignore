@@ -1,4 +1,5 @@
-credentials*
+credentials.py*
+playlists.py*
 __pycache__/
 chromedriver*
 testing/

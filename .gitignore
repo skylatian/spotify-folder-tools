@@ -6,3 +6,4 @@ testing/
 *ignore*
 logs/*
 *cache*
+downloaded_files/*

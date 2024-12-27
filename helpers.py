@@ -81,21 +81,38 @@ def get_daylistO(sp, user_id):
     dl_endpoint = f"https://api.spotify.com/v1/browse/categories/{daily_mix_hub}/playlists" # this might work. needs testing.
     return None
 
+def get_daylist_info(access_token, playlist_id):
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}"
+    headers = {"Authorization": f"{access_token}"}
+
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch playlist info: {response.status_code} {response.json()}")
+    
+    data = response.json()
+
+    # Extract playlist metadata
+    playlist_info = {
+        "id": data["id"],
+        "name": data["name"],
+        "description": data.get("description", ""),
+        "owner": data["owner"]["display_name"],
+        "total_tracks": data["tracks"]["total"],
+        "url": data["external_urls"]["spotify"]
+    }
+
+    print(f"Playlist '{playlist_info['name']}' info retrieved successfully.")
+    return playlist_info
 
 def get_daylist(access_token, playlist_id):
     """
-    Fetches all tracks from a Spotify playlist using a non-Spotipy method.
-
-    Parameters:
-        access_token (str): Spotify API access token.
-        playlist_id (str): ID of the playlist to fetch.
-
-    Returns:
-        List of track metadata (IDs, names, artists).
+ Fetches all tracks from a playlist, intended specifically for Daylist use.
+ (Daylists do not work with Spotipy, as far as I can tell)
     """
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
     headers = {"Authorization": f"{access_token}"}
     tracks = []
+    trackIDs = []
     offset = 0
     limit = 100  # Spotify's maximum allowed per request
 
@@ -113,6 +130,7 @@ def get_daylist(access_token, playlist_id):
             track_name = track['name']
             artist_name = track['artists'][0]['name']
             tracks.append(f"{artist_name}, {track_name}, {track_id}")
+            trackIDs.append(track_id)
         
         if len(items) < limit:  # If fewer than limit results, we're done
             break
@@ -120,7 +138,7 @@ def get_daylist(access_token, playlist_id):
         offset += limit
 
     print(f"Retrieved {len(tracks)} tracks.")
-    return tracks
+    return tracks, trackIDs
 
 def get_all_in_playlist(sp, playlistID):
     returned_chunk = 100
@@ -155,17 +173,31 @@ def get_all_in_playlist(sp, playlistID):
 
     return ids, tracks
 
-def create_blank_playlist(sp, user_id):
+def create_blank_playlist(sp, user_id,blankName, blankDescription):
     try:
         # Get the current user
-        new_playlist = sp.user_playlist_create(user=user_id,name="this is another test playlist",public=False, collaborative=False, description= "date, time and note here")
+        new_playlist = sp.user_playlist_create(user=user_id,name=blankName,public=False, collaborative=False, description= blankDescription)
         #pprint(new_playlist)  # Debugging response
         new_playlist_uri = new_playlist['uri']
+        new_playlist_id = new_playlist['id']
+        print(new_playlist_uri, new_playlist_id)
         
-        return new_playlist_uri
+        return new_playlist_uri, new_playlist_id
     #print(new_playlist)
 
     except Exception as e:
         print(f"Error creating playlist: {e}")
         return None
     
+def add_to_playlist(sp, playlist_id, song_ids):
+    try:
+        #sp.playlist_add_items(playlist_id, song_ids)
+        chunk_size = 100
+        for i in range(0, len(song_ids), chunk_size):
+            chunk = song_ids[i:i+chunk_size]
+            sp.playlist_add_items(playlist_id, chunk)
+            b = f"Added {len(chunk)}/{len(song_ids)}"
+            print (b, end="\r")
+
+    except Exception as e:
+        print(f"Error adding songs to playlist: {e}")

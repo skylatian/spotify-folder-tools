@@ -1,8 +1,12 @@
 import json
 import http.client
 from pprint import pprint
-from playlists import daily_mix_hub
+import re
 import requests
+
+# private
+from playlists import daily_mix_hub
+from playlists import daylist
 
 def move_playlist(auth_token, user, moving_playlist, destination_folder):
     conn = http.client.HTTPSConnection('spclient.wg.spotify.com')
@@ -201,3 +205,66 @@ def add_to_playlist(sp, playlist_id, song_ids):
 
     except Exception as e:
         print(f"Error adding songs to playlist: {e}")
+
+def get_daylist_share_link(bearer_token):
+    """
+    This gets the sharable, public link for your Daylist.
+    This should be easier to use with spotipy and not require copying an entire playlist! hopefully.
+    """
+
+    conn = http.client.HTTPSConnection('spclient.wg.spotify.com')
+
+    headers = {
+        'accept': 'application/protobuf',
+        'accept-language': 'en',
+        'app-platform': 'WebPlayer',
+        'authorization': bearer_token,
+        'content-type': 'application/json;charset=UTF-8',
+        'dnt': '1',
+        'origin': 'https://open.spotify.com',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://open.spotify.com/',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+    }
+
+    json_data = {
+        'entityRequest': [
+            {
+                'entityUri': f'spotify:playlist:{daylist}',
+                'query': [
+                    {
+                        'extensionKind': 105,
+                        'etag': '',
+                    },
+                ],
+            },
+        ],
+    }
+
+    conn.request(
+        'POST',
+        'https://spclient.wg.spotify.com/extended-metadata/v0/extended-metadata',
+        json.dumps(json_data),
+        headers
+    )
+
+
+    response = conn.getresponse()
+    decoded_data = response.read().decode('utf-8', errors='ignore') # decode data into a string
+
+    # use regex to extract the ResolvedShare link
+    match = re.search(r"ResolvedShare\x12\)\n'spotify:playlist:([^\x00]*)", decoded_data)
+    if match:
+        playlist_id = match.group(1)  # extract the playlist ID only
+        #print("Playlist ID:", playlist_id)
+        return playlist_id
+    else:
+        print("Playlist ID not found.")
+        raise Exception("Playlist ID not found.") # not sure if I want to raise exception or return None
+        #return None
+    

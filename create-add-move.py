@@ -2,11 +2,11 @@ from functionize import auth_output
 from playlists import folder as dest_folder
 from credentials import credentials
 import http.client
-#import logging
+import logging
 from pprint import pprint
 import json
 
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 # spotipy
 import spotipy
@@ -24,17 +24,30 @@ user = sp.current_user()
 user_id = user['id']
 print(user_id)
 
+# OK!! here's the plan:
+# 1. Create a new playlist. Should have date, time in title. More info in description? not sure what. Maybe only time in description. idk
+# 2. Move the playlist to a folder. Could implement a way to search through folders
+# 3. Add songs to the playlist (this is smoother - makes the new playlist get hidden faster)
 
+# Authentication:
+# - Needs to be revamped to be more efficient. cache tokens until one fails
+# - also, check if there's an easier way to get a token that works in the private API
+# - Either way, cache the token, check if it needs renewal (either with a timestamp provided with the original call, or by sending a test request to the API)
+
+# we want to figure out how to turn an access token into a bearer token - this MIGHT let us move things using a token from the normal api, but I doubt it.
+# I think there's a way to do this with the oauth flow as well
+# - maybe it's this? https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow NOPE
+
+## THIS IS SUPER HELPFUL!! https://community.spotify.com/t5/Spotify-for-Developers/Does-Client-Credential-flow-allow-access-to-user-tracks-amp/td-p/5386382#
 
 def create_blank_playlist():
     try:
-        new_playlist = sp.user_playlist_create(user=user_id,name="this is a test playlist",public=False, collaborative=False, description= "date, time and note here")
+        new_playlist = sp.user_playlist_create(user=user_id,name="this is another test playlist",public=False, collaborative=False, description= "date, time and note here")
         #pprint(new_playlist)  # Debugging response
         new_playlist_uri = new_playlist['uri']
         
         return new_playlist_uri
     #print(new_playlist)
-    #sp.playlist_add_items(new_playlist, ["32x2evaEmK4mBvY4uXzQ6o"])
 
     except Exception as e:
         print(f"Error creating playlist: {e}")
@@ -108,6 +121,8 @@ def move_playlist(auth_token, user_username, moving_playlist, destination_folder
     response = conn.getresponse()
     
     response = response.read().decode()
+    pprint(response)
+    exit()
     if response == 'Invalid access token':
         print("'Invalid access token' error")
         # THIS IS WHERE YOU RE-TRY FOR A TOKEN MAYBE?
@@ -120,8 +135,6 @@ def move_playlist(auth_token, user_username, moving_playlist, destination_folder
 nplURI = create_blank_playlist()
 
 print("created playlist, now moving")
-
-
 
 # authorize separately (streamline this massivley)
 print("authorizing in the silly way...")

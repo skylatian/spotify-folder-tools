@@ -12,6 +12,11 @@ These folder IDs are the same as the "group" IDs in the private API
 enter venv: `source .venv/bin/activate`
 exit evenv: `deactivate`
 
+### thoughts: make this repo JUST for the folder tools, and use a separate repo that depends on this one for folder actions. plus pip, in the future, with lots of work.
+- could have a main repo that shows all of my spotify tools, with this one just being for folders
+- another for different auth types
+- etc
+(just a thought)
 
 future plan:
 - check for existed cached credentials - if they exist, use them

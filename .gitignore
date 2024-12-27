@@ -5,4 +5,4 @@ chromedriver*
 testing/
 *ignore*
 logs/*
-.cache
+*cache*

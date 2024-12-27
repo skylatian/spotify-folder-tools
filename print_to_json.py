@@ -33,6 +33,7 @@ try:
     password_field = driver.find_element(By.CSS_SELECTOR, 'input[autocomplete="current-password"]')
     password_field.clear()
     password_field.send_keys(password)
+    time.sleep(1)   # add small delay to not freak out spotify
     driver.find_element(By.ID, "login-button").send_keys(Keys.ENTER)
 
     # Wait for the main page to load

@@ -9,11 +9,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as cond
 from selenium.webdriver.chrome.options import Options
-
-from credentials import username, password, chromedriver_path
-from playlists import playlist, folder
+from credentials import username, password
 from pprint import pprint
 
+from playlists import playlist, folder
 
 
 def get_tokens(): 
@@ -73,7 +72,7 @@ def get_tokens():
         driver.quit()
     
 
-def send_request(auth_token, user, moving_playlsit, destination_folder):
+def move_playlist(auth_token, user, moving_playlist, destination_folder):
     conn = http.client.HTTPSConnection('spclient.wg.spotify.com')
     headers = {
         'accept': 'application/json',
@@ -103,7 +102,7 @@ def send_request(auth_token, user, moving_playlsit, destination_folder):
                         'mov': {
                             'items': [
                                 {
-                                    'uri': moving_playlsit,
+                                    'uri': moving_playlist,
                                     'attributes': {
                                         'formatAttributes': [],
                                         'availableSignals': [],
@@ -143,7 +142,7 @@ def send_request(auth_token, user, moving_playlsit, destination_folder):
     pprint(response)
 
 
-def auth_and_request():
+def auth_output():
     authT, cliT = get_tokens()
     if authT:
         print("Tokens found")
@@ -151,8 +150,8 @@ def auth_and_request():
     else:
         print("Tokens not found")
         exit(1)
+    return authT, cliT
 
-    send_request(authT, username, playlist, folder)
+#authTok, cliTok = auth_output()
 
-
-auth_and_request()
+#move_playlist(authTok, username, playlist, folder)

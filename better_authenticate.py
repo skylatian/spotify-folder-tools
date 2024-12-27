@@ -5,7 +5,7 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from seleniumbase import SB
-from credentials import username, password
+from credentials import credentials
 
 CACHE_FILE = ".token_cache.json"
 
@@ -43,8 +43,8 @@ def authenticate():
     """Authenticate with Spotify and fetch a new access token."""
     with SB(wire=True) as sb:
         sb.open("https://accounts.spotify.com/en/login?continue=https:%2F%2Fopen.spotify.com%2F")
-        sb.type('input[autocomplete="username"]', username)
-        sb.type('input[autocomplete="current-password"]', password)
+        sb.type('input[autocomplete="username"]', credentials.username)
+        sb.type('input[autocomplete="current-password"]', credentials.password)
         sb.click("#login-button")
         sb.wait_for_element("body", timeout=15)
         sb.sleep(10)

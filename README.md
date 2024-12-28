@@ -18,10 +18,13 @@ exit evenv: `deactivate`
 - etc
 (just a thought)
 
-future plan:
-- check for existed cached credentials - if they exist, use them
-- attempt to make simple call with prior credentials. if call fails, get new credentials
-- if call succeeds, move on.
+#### future plan:
+
+✅ Check for existed cached credentials - if they exist, use them
+
+✅ ~~attempt to make simple call with prior credentials. if call fails, get new credentials~~ using timeout instead
+
+---
 
 > [!CAUTION]
 > This project is not associated with Spotify in any manner, and may break at any time. Use at your own risk.

@@ -3,10 +3,19 @@ import http.client
 from pprint import pprint
 import re
 import requests
+import time
+import datetime
 
-# private
-from playlists import daily_mix_hub
-from playlists import daylist
+# private API
+from credentials import username
+
+# public
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+# mine
+from credentials import credentials
+from playlists import daily_mix_hub, daylist, daylist_folder
 
 def move_playlist(auth_token, user, moving_playlist, destination_folder):
     conn = http.client.HTTPSConnection('spclient.wg.spotify.com')
@@ -28,7 +37,9 @@ def move_playlist(auth_token, user, moving_playlist, destination_folder):
         'sec-fetch-dest': 'empty',
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-site',
+
     }
+
     json_data = {
         'deltas': [
             {
@@ -210,6 +221,10 @@ def get_daylist_share_link(bearer_token):
     """
     This gets the sharable, public link for your Daylist.
     This should be easier to use with spotipy and not require copying an entire playlist! hopefully.
+    Nvm. cannot use spotipy with this ID, afaik. It errored out every time. playlist associated with ID is still save-able and movable with Private API.
+
+    also note: this functrion WILL generate a new ID each time it's called, even for the same daylist. these are separate playlists and will act like it in your library.
+    will implement a cache or something for this later, if necessary.
     """
 
     conn = http.client.HTTPSConnection('spclient.wg.spotify.com')
@@ -268,3 +283,107 @@ def get_daylist_share_link(bearer_token):
         raise Exception("Playlist ID not found.") # not sure if I want to raise exception or return None
         #return None
     
+def get_daylist_owner(sp, daylist_share_ID):
+    print(sp.playlist(daylist_share_ID))
+
+def spotipy_auth():
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(credentials.client_id,
+                                                credentials.client_secret,
+                                                redirect_uri=credentials.redirect_uri,
+                                                scope="playlist-read-private playlist-modify-private user-library-read"))
+
+    #sp.trace = True  # Enable debugging
+
+    #user = sp.current_user()
+    #user_id = user['id']
+    print(sp.playlist("37i9dQZF1FbCQsJgAYCd9f"))
+    return sp
+
+def time_now_ms():
+    dt = datetime.datetime.now()
+    t_now_ms = dt.microsecond / 1000
+
+    return t_now_ms
+
+def save_daylist(auth_token, username, daylist_share_ID):
+
+    headers = {
+        'accept': 'application/json',
+        'accept-language': 'en',
+        'app-platform': 'WebPlayer',
+        'authorization': auth_token, 
+        'cache-control': 'no-cache',
+        'content-type': 'application/json;charset=UTF-8',
+        'dnt': '1',
+        'origin': 'https://open.spotify.com',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://open.spotify.com/',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'spotify-app-version': '1.2.54.219.g19a93a5d',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    }
+
+    data = {
+        "deltas": [
+            {
+                "ops": [
+                    {
+                        "kind": 2,
+                        "add": {
+                            "items": [
+                                {
+                                    "uri": f"spotify:playlist:{daylist_share_ID}",
+                                    "attributes": {
+                                        "formatAttributes": [],
+                                        "availableSignals": []
+                                    },
+                                },
+                            ],
+                            "addFirst": True,
+                        },
+                    },
+                ],
+                "info": {
+                    "source": {
+                        "client": 5
+                    },
+                },
+            },
+        ],
+        "wantResultingRevisions": False,
+        "wantSyncResult": False,
+        "nonces": []
+    }
+
+    response = requests.post(
+        f'https://spclient.wg.spotify.com/playlist/v2/user/{username}/rootlist/changes',
+        headers=headers,
+        json=data,
+        timeout=10 
+    )
+
+    print(response.status_code, response.reason)
+
+    return response
+
+def save_and_move_daylist(token: str):
+
+    """
+    INFO: This function is a combination of the save_daylist and move_playlist functions.
+
+    ALSO: save_move_daylist WILL save duplicates of daylists if already saved manually. 
+    - This is because each time you share, it generates another ID.
+    - To fix this, maybe cache the already-saved daylists somehow? not sure.
+
+    """
+
+    # gets the *sharable* link for your current daylist. this is a persistent playlist that we can then save and move within your library
+    daylist_share_ID = get_daylist_share_link(token)
+
+    # specific function for daylist saving that doesn't use spotipy
+    save_daylist(token, username, daylist_share_ID)
+
+    move_playlist(token, username, f"spotify:playlist:{daylist_share_ID}", daylist_folder)
